@@ -1,0 +1,170 @@
+---
+name: sync
+description: Two-agent pipeline. Claude = planner + tester coordinator. OpenCode = coder + ALL file I/O. Use on /sync.
+---
+
+# You are now the PLANNER AGENT
+
+**Core rule: Never use Read/Edit/Write on existing project files. All codebase I/O goes through OpenCode.**
+- `plan.md` and `results.md` are YOUR structured outputs -> Write tool is OK for those (they're small, Claude-generated)
+- Reading existing code/dirs, implementing files, running tests -> OpenCode only
+
+```
+SHARED={{AGENT_COLLAB_DIR}}/shared
+CHANNEL={{AGENT_COLLAB_DIR}}/shared/channel
+```
+
+---
+
+## INIT
+
+```bash
+{{AGENT_COLLAB_DIR}}/reset.sh
+mkdir -p {{AGENT_COLLAB_DIR}}/shared/channel
+rm -f {{AGENT_COLLAB_DIR}}/shared/channel/context-ready.flag {{AGENT_COLLAB_DIR}}/shared/channel/test-ready.flag
+```
+
+Read the task:
+```bash
+cat {{AGENT_COLLAB_DIR}}/shared/task.md
+```
+
+Model detection:
+```bash
+CLAUDE_MODEL=$(cat {{AGENT_COLLAB_DIR}}/planner/.claude/settings.json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('model','claude-sonnet-4-6'))" 2>/dev/null || echo "claude-sonnet-4-6")
+if [[ "$CLAUDE_MODEL" == *"opus"* ]]; then CC_LABEL="CLAUDE CODE - OPUS"; else CC_LABEL="CLAUDE CODE - SONNET"; fi
+OC_MODEL_ID=$(cat {{AGENT_COLLAB_DIR}}/shared/opencode-model.txt 2>/dev/null || echo "deepseek/deepseek-chat-v3-0324")
+OC_DISPLAY=$(echo "$OC_MODEL_ID" | sed 's|.*/||;s/deepseek-chat-v3-0324/Deepseek V3/;s/deepseek-r1-0528/Deepseek R1/;s/claude-sonnet-4-5/Claude Sonnet/;s/claude-opus-4-5/Claude Opus/;s/gpt-4o/GPT-4o/;s/gpt-4.1/GPT-4.1/;s/gemini-2.5-pro/Gemini 2.5 Pro/')
+OC_LABEL="OPENCODE - $OC_DISPLAY"
+```
+
+Print: `[$CC_LABEL] INIT - Pipeline reiniciado. Leyendo task.md...`
+
+---
+
+## PHASE 0 - CONTEXT (token-efficient file reading)
+
+Ask the user:
+> "Que rutas (archivos o directorios) necesito revisar para planear esta tarea? Escribe paths absolutos separados por coma, o 'ninguno'."
+
+**If paths provided**, launch OpenCode context reader in background:
+
+Print: `[$OC_LABEL] Leyendo contexto -> <paths que el usuario proporciono>`
+
+```bash
+PATHS="<user-provided paths>"
+tmux kill-session -t ctx 2>/dev/null; tmux new-session -d -s ctx
+tmux send-keys -t ctx "opencode run 'Read each of these paths (full file content, or recursive tree+key content if directory). Write ONE concise technical summary: structure, exports, function signatures, data shapes, relevant patterns - max 700 words total. Write summary to {{AGENT_COLLAB_DIR}}/shared/channel/planner_inbox.md then run: touch {{AGENT_COLLAB_DIR}}/shared/channel/context-ready.flag. Paths: $PATHS' --dir {{AGENT_COLLAB_DIR}}/shared/channel --format json --dangerously-skip-permissions 2>&1 | tee -a {{AGENT_COLLAB_DIR}}/shared/usage.jsonl" Enter
+```
+
+Poll with individual Bash calls (never a blocking loop):
+```bash
+ls {{AGENT_COLLAB_DIR}}/shared/channel/context-ready.flag 2>/dev/null
+```
+
+When ready - read summary, then clear inbox:
+Print: `[$OC_LABEL] Contexto listo. Leyendo resumen...`
+
+```bash
+cat {{AGENT_COLLAB_DIR}}/shared/channel/planner_inbox.md
+> {{AGENT_COLLAB_DIR}}/shared/channel/planner_inbox.md
+```
+
+If no paths -> skip to Phase 1 immediately.
+
+---
+
+## PHASE 1 - PLAN
+
+Print: `[$CC_LABEL] Escribiendo plan.md...`
+
+**Use the Write tool** to write `{{AGENT_COLLAB_DIR}}/shared/plan.md`.
+
+Plan must include:
+- File list with exact paths (relative to `shared/output/`)
+- Every function: name, params, return type, behavior
+- Exact data structures (full JSON shapes for persistence files)
+- Integration points with existing code (from context summaries)
+- Error handling for every edge case
+- Test command for every requirement
+- Final line: `When all files are implemented, run: touch {{AGENT_COLLAB_DIR}}/shared/code-done.flag`
+
+Launch coder and signal:
+Print: `[$OC_LABEL] Implementando plan -> OpenCode coder iniciando...`
+
+```bash
+tmux kill-session -t coder 2>/dev/null; tmux new-session -d -s coder
+tmux send-keys -t coder "cd {{AGENT_COLLAB_DIR}}/coder && ./start.sh" Enter
+echo "$(date '+%H:%M:%S') [$CC_LABEL] Plan ready" >> {{AGENT_COLLAB_DIR}}/shared/run.log
+touch {{AGENT_COLLAB_DIR}}/shared/plan-ready.flag
+```
+
+Print: `PLAN LISTO - [OPENCODE] codificando...`
+
+---
+
+## PHASE 2 - WAIT + MONITOR
+
+Print: `[$CC_LABEL] Esperando a [$OC_LABEL]... (polling code-done.flag cada ~15s)`
+
+Poll every ~15s. Individual Bash calls only - never a blocking loop:
+```bash
+ls {{AGENT_COLLAB_DIR}}/shared/code-done.flag {{AGENT_COLLAB_DIR}}/shared/error.flag 2>/dev/null; cat {{AGENT_COLLAB_DIR}}/shared/channel/planner_inbox.md 2>/dev/null
+```
+
+- `code-done.flag` -> Print: `[$OC_LABEL] Implementacion completa. Pasando a tests...` -> proceed to Phase 3
+- `error.flag` -> Print: `[$OC_LABEL] ERROR detectado. Ver error.flag.` -> report to user and stop
+- Inbox has content -> Print: `[$OC_LABEL -> $CC_LABEL] Mensaje recibido en inbox. Procesando...` -> process it, log response to `chat.log`, delegate to `opencode_inbox.md` if needed, clear inbox
+
+Stay responsive to user questions during this phase - answer, then continue polling.
+
+---
+
+## PHASE 3 - TEST (Claude runs tests directly)
+
+Print: `[$CC_LABEL] Ejecutando tests directamente con Bash...`
+
+Run every test command from `plan.md` using the Bash tool. For each test:
+- Print: `[$CC_LABEL] TEST: <command>`
+- Run it with Bash
+- Print `PASS +` or `FAIL X - <actual output>`
+
+Do NOT delegate to OpenCode. Do NOT launch tmux sessions. Claude runs all tests inline.
+
+**Use the Write tool** to write `{{AGENT_COLLAB_DIR}}/docs/results.md` with the full test report.
+Print: `[$CC_LABEL] Escribiendo results.md...`
+
+```bash
+echo "$(date '+%H:%M:%S') [$CC_LABEL] Tests complete" >> {{AGENT_COLLAB_DIR}}/shared/run.log
+```
+
+**Token Usage Summary** - Claude runs directly via Bash:
+
+```bash
+{{AGENT_COLLAB_DIR}}/token-summary.sh
+```
+
+Then capture markdown version and append to results.md, and extract the run total to print explicitly:
+```bash
+SUMMARY_MD=$({{AGENT_COLLAB_DIR}}/token-summary.sh --markdown)
+echo "" >> {{AGENT_COLLAB_DIR}}/docs/results.md
+echo "$SUMMARY_MD" >> {{AGENT_COLLAB_DIR}}/docs/results.md
+
+OC_SAVED=$({{AGENT_COLLAB_DIR}}/token-summary.sh | grep "Total:" | head -1 | awk '{print $NF}')
+```
+
+Print: `[$CC_LABEL] Tokens saved via OpenCode this run: $OC_SAVED (not charged to this Claude Code session)`
+
+Print final verdict: `[$CC_LABEL] ALL TESTS PASSED` or `[$CC_LABEL] X TESTS FAILED - ver docs/results.md`
+
+---
+
+## REFERENCE
+
+| Command | Purpose |
+|---------|---------|
+| `tmux attach -t coder` | Watch OpenCode implement |
+| `tmux attach -t ctx` | Watch context reader |
+| `cat {{AGENT_COLLAB_DIR}}/shared/run.log` | Pipeline log |
+| `{{AGENT_COLLAB_DIR}}/set-task.sh "task"` | Change task before /sync |
+| `{{AGENT_COLLAB_DIR}}/reset.sh` | Clean all artifacts for new run |

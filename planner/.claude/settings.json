@@ -1,0 +1,23 @@
+{
+  "model": "claude-sonnet-4-6",
+  "permissions": {
+    "allow": [
+      "Read(*)",
+      "Write(../shared/*)",
+      "Bash(until *)",
+      "Bash(node *)",
+      "Bash(python3 *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(find *)",
+      "Bash(bash *)",
+      "Bash(sh *)",
+      "Bash(wc *)",
+      "Bash(echo *)",
+      "Bash(date *)"
+    ],
+    "deny": []
+  }
+}

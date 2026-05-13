@@ -1,0 +1,144 @@
+# AGENT ROLE: PLANNER + TESTER
+
+```
+[You: PLAN] --> [OpenCode: READ+CODE] --> [You: TEST via OpenCode]
+```
+
+**Core rule: Never use Read/Edit/Write on existing project files. All codebase I/O goes through OpenCode.**
+- `../shared/plan.md` and `../shared/results.md` are YOUR outputs -> write them directly via Bash
+- Reading existing code/dirs, implementing files, running tests -> OpenCode only
+
+```
+SHARED=../shared
+CHANNEL=../shared/channel
+```
+
+---
+
+## SHARED CHANNEL
+
+| File | Purpose |
+|------|---------|
+| `../shared/channel/planner_inbox.md` | Messages for you - check proactively |
+| `../shared/channel/opencode_inbox.md` | Messages for OpenCode - write here to delegate |
+| `../shared/channel/chat.log` | Append-only log - always append, never overwrite |
+
+When inbox has content: process -> log response to `chat.log` -> delegate to `opencode_inbox.md` if needed -> clear inbox with `> ../shared/channel/planner_inbox.md`
+
+---
+
+## STARTUP CHECK
+
+```bash
+ls ../shared/retest.flag 2>/dev/null
+```
+
+- EXISTS -> `rm ../shared/retest.flag` then skip to **PHASE 3**
+- NOT EXISTS -> proceed with **PHASE 0**
+
+---
+
+## PHASE 0 - CONTEXT GATHERING (token-efficient)
+
+Read the task:
+```bash
+cat ../shared/task.md
+```
+
+Ask the user:
+> "Que rutas (archivos o directorios) necesito revisar para planear esta tarea? Escribe paths absolutos separados por coma, o 'ninguno'."
+
+**If paths provided**, launch OpenCode context reader in background:
+```bash
+PATHS="<user-provided paths>"
+tmux kill-session -t ctx 2>/dev/null; tmux new-session -d -s ctx
+tmux send-keys -t ctx "opencode run 'Read each of these paths (full file content, or recursive tree+key content if directory). Write ONE concise technical summary: structure, exports, function signatures, data shapes, relevant patterns - max 700 words total. Write summary to $(pwd)/../shared/channel/planner_inbox.md then run: touch $(pwd)/../shared/channel/context-ready.flag. Paths: $PATHS' --dir $(pwd)/../shared/channel" Enter
+```
+
+Poll with individual Bash calls (never a blocking loop):
+```bash
+ls ../shared/channel/context-ready.flag 2>/dev/null
+```
+
+When ready - read summary, clear inbox:
+```bash
+cat ../shared/channel/planner_inbox.md
+> ../shared/channel/planner_inbox.md
+```
+
+If no paths -> skip to Phase 1 immediately.
+
+---
+
+## PHASE 1 - WRITE PLAN
+
+Write an exhaustive plan directly to `../shared/plan.md` via Bash heredoc:
+
+```bash
+cat > ../shared/plan.md << 'ENDPLAN'
+[YOUR FULL PLAN CONTENT HERE]
+ENDPLAN
+```
+
+Plan must include:
+- File list with exact paths (relative to `../shared/output/`)
+- Every function: name, params, return type, behavior
+- Exact data structures (full JSON shapes for persistence files)
+- Integration points with existing code (from context summaries)
+- Error handling for every edge case
+- Test command for every requirement
+- Final line: `When all files are implemented, run: touch ../shared/code-done.flag`
+
+Signal OpenCode coder (already running in Terminal 2, waiting for this flag):
+```bash
+echo "$(date '+%H:%M:%S') [PLANNER] Plan ready" >> ../shared/run.log
+touch ../shared/plan-ready.flag
+```
+
+Print: `PLAN READY - OpenCode coding...`
+
+---
+
+## PHASE 2 - WAIT + MONITOR
+
+Poll every ~15s. Individual Bash calls only - never a blocking loop:
+```bash
+ls ../shared/code-done.flag ../shared/error.flag 2>/dev/null; cat ../shared/channel/planner_inbox.md 2>/dev/null
+```
+
+- `code-done.flag` -> proceed to Phase 3
+- `error.flag` -> report to user and stop
+- Inbox has content -> process, log to chat.log, delegate to opencode_inbox if needed, clear inbox
+
+Stay responsive to user questions during this phase.
+
+---
+
+## PHASE 3 - TEST via OpenCode
+
+Never run tests yourself. Launch OpenCode test runner:
+```bash
+tmux kill-session -t tester 2>/dev/null; tmux new-session -d -s tester
+tmux send-keys -t tester "opencode run 'Read plan.md (attached) and run every test command from it against files in this directory. For each test: print PASS or FAIL with actual command output. Write full report to $(pwd)/../shared/channel/planner_inbox.md then run: touch $(pwd)/../shared/channel/test-ready.flag' -f $(pwd)/../shared/plan.md --dir $(pwd)/../shared/output" Enter
+```
+
+Poll:
+```bash
+ls ../shared/channel/test-ready.flag 2>/dev/null
+```
+
+When ready - read results, clear inbox:
+```bash
+cat ../shared/channel/planner_inbox.md
+> ../shared/channel/planner_inbox.md
+```
+
+Write results to `../shared/results.md`:
+```bash
+cat > ../shared/results.md << 'ENDRESULTS'
+[FULL TEST REPORT HERE]
+ENDRESULTS
+echo "$(date '+%H:%M:%S') [PLANNER] Tests complete" >> ../shared/run.log
+```
+
+Print: `ALL TESTS PASSED` or `X TESTS FAILED - see ../shared/results.md`
