@@ -10,7 +10,7 @@ FLAG="/tmp/doc-updater-done.flag"
 # Save state to $STATE_FILE (with relative paths only)
 # All paths derived from ROOT - no hardcoded paths
 
-OC_MODEL=$(cat "$SHARED/opencode-model.txt" 2>/dev/null || echo "deepseek/deepseek-chat-v3-0324")
+OC_MODEL=$(cat "$SHARED/opencode-model.txt" 2>/dev/null || echo "opencode-go/deepseek-v4-flash")
 
 rm -f "$FLAG"
 

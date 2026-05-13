@@ -89,27 +89,35 @@ The coder model is independent from Claude. Change it any time:
 # Interactive menu
 ./set-opencode-model.sh
 
-# Direct selection (model ID suffix)
-./set-opencode-model.sh deepseek
-./set-opencode-model.sh r1
-./set-opencode-model.sh sonnet
-./set-opencode-model.sh opus
-./set-opencode-model.sh gpt4o
-./set-opencode-model.sh gpt41
-./set-opencode-model.sh gemini
+# Direct selection (display name or model ID substring)
+./set-opencode-model.sh deepseek      # Deepseek V4 Flash (default)
+./set-opencode-model.sh pro           # Deepseek V4 Pro
+./set-opencode-model.sh kimi          # Kimi K2.5
+./set-opencode-model.sh k2.6          # Kimi K2.6
+./set-opencode-model.sh qwen          # Qwen 3.5 Plus
+./set-opencode-model.sh 3.6           # Qwen 3.6 Plus
+./set-opencode-model.sh minimax       # MiniMax M2.5
+./set-opencode-model.sh m2.7          # MiniMax M2.7
+./set-opencode-model.sh mimo          # Mimo V2.5
+./set-opencode-model.sh glm           # GLM-5
 ```
 
-Full model table:
+These are the models included in the **OpenCode Go subscription** (no separate API key needed):
 
 | # | Display Name | Model ID | Best For |
 |---|-------------|----------|----------|
-| 1 | Claude Sonnet 4.5 | `anthropic/claude-sonnet-4-5` | Balanced quality/speed |
-| 2 | Claude Opus 4.5 | `anthropic/claude-opus-4-5` | Complex reasoning |
-| 3 | Deepseek R1 | `deepseek/deepseek-r1-0528` | Reasoning-heavy tasks |
-| 4 | Deepseek V3 | `deepseek/deepseek-chat-v3-0324` | Default, fast general coding |
-| 5 | GPT-4o | `openai/gpt-4o` | Strong instruction following |
-| 6 | GPT-4.1 | `openai/gpt-4.1` | Latest GPT-4 variant |
-| 7 | Gemini 2.5 Pro | `google/gemini-2.5-pro` | Large context windows |
+| 1 | Deepseek V4 Flash | `opencode-go/deepseek-v4-flash` | Default — fast, low-cost |
+| 2 | Deepseek V4 Pro | `opencode-go/deepseek-v4-pro` | High-quality coding, reasoning |
+| 3 | Kimi K2.5 | `opencode-go/kimi-k2.5` | Balanced quality and speed |
+| 4 | Kimi K2.6 | `opencode-go/kimi-k2.6` | Latest Kimi, improved accuracy |
+| 5 | Qwen 3.5 Plus | `opencode-go/qwen3.5-plus` | Strong instruction following |
+| 6 | Qwen 3.6 Plus | `opencode-go/qwen3.6-plus` | Latest Qwen, improved reasoning |
+| 7 | MiniMax M2.5 | `opencode-go/minimax-m2.5` | Efficient mid-tier coding |
+| 8 | MiniMax M2.7 | `opencode-go/minimax-m2.7` | Enhanced quality over M2.5 |
+| 9 | Mimo V2.5 | `opencode-go/mimo-v2.5` | Fast, lightweight tasks |
+| 10 | Mimo V2.5 Pro | `opencode-go/mimo-v2.5-pro` | Pro-tier Mimo, higher accuracy |
+| 11 | GLM-5 | `opencode-go/glm-5` | Bilingual Chinese/English |
+| 12 | GLM-5.1 | `opencode-go/glm-5.1` | Latest GLM, improved multilingual |
 
 The selected model persists in `shared/opencode-model.txt` across resets.
 

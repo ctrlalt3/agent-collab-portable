@@ -4,7 +4,7 @@ SHARED="$ROOT/shared"
 CHANNEL="$SHARED/channel"
 DOCS="$ROOT/docs"
 
-OC_MODEL=$(cat "$SHARED/opencode-model.txt" 2>/dev/null || echo "deepseek/deepseek-chat-v3-0324")
+OC_MODEL=$(cat "$SHARED/opencode-model.txt" 2>/dev/null || echo "opencode-go/deepseek-v4-flash")
 
 echo "Waiting for plan-ready.flag..."
 while [ ! -f "$SHARED/plan-ready.flag" ]; do sleep 2; done

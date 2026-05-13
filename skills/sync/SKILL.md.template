@@ -33,8 +33,8 @@ Model detection:
 ```bash
 CLAUDE_MODEL=$(cat {{AGENT_COLLAB_DIR}}/planner/.claude/settings.json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('model','claude-sonnet-4-6'))" 2>/dev/null || echo "claude-sonnet-4-6")
 if [[ "$CLAUDE_MODEL" == *"opus"* ]]; then CC_LABEL="CLAUDE CODE - OPUS"; else CC_LABEL="CLAUDE CODE - SONNET"; fi
-OC_MODEL_ID=$(cat {{AGENT_COLLAB_DIR}}/shared/opencode-model.txt 2>/dev/null || echo "deepseek/deepseek-chat-v3-0324")
-OC_DISPLAY=$(echo "$OC_MODEL_ID" | sed 's|.*/||;s/deepseek-chat-v3-0324/Deepseek V3/;s/deepseek-r1-0528/Deepseek R1/;s/claude-sonnet-4-5/Claude Sonnet/;s/claude-opus-4-5/Claude Opus/;s/gpt-4o/GPT-4o/;s/gpt-4.1/GPT-4.1/;s/gemini-2.5-pro/Gemini 2.5 Pro/')
+OC_MODEL_ID=$(cat {{AGENT_COLLAB_DIR}}/shared/opencode-model.txt 2>/dev/null || echo "opencode-go/deepseek-v4-flash")
+OC_DISPLAY=$(echo "$OC_MODEL_ID" | sed 's|.*/||;s/deepseek-v4-flash/Deepseek V4 Flash/;s/deepseek-v4-pro/Deepseek V4 Pro/;s/kimi-k2.5/Kimi K2.5/;s/kimi-k2.6/Kimi K2.6/;s/qwen3.5-plus/Qwen 3.5 Plus/;s/qwen3.6-plus/Qwen 3.6 Plus/;s/minimax-m2.5/MiniMax M2.5/;s/minimax-m2.7/MiniMax M2.7/;s/mimo-v2.5-pro/Mimo V2.5 Pro/;s/mimo-v2.5/Mimo V2.5/;s/glm-5.1/GLM-5.1/;s/glm-5/GLM-5/')
 OC_LABEL="OPENCODE - $OC_DISPLAY"
 ```
 

@@ -97,7 +97,7 @@ fi
 
 # 9. Initialize shared/opencode-model.txt with default
 if [ ! -f "$SHARED/opencode-model.txt" ]; then
-  echo "deepseek/deepseek-chat-v3-0324" > "$SHARED/opencode-model.txt"
+  echo "opencode-go/deepseek-v4-flash" > "$SHARED/opencode-model.txt"
   echo "Initialized: $SHARED/opencode-model.txt"
 fi
 
