@@ -83,41 +83,55 @@ Claude runs every test command from the plan and writes results to `docs/results
 
 ## Changing the OpenCode Model
 
-The coder model is independent from Claude. Change it any time:
+The coder model is independent from Claude. Change it any time via the `/openmodel` skill in Claude Code:
 
-```bash
-# Interactive menu
-./set-opencode-model.sh
-
-# Direct selection (display name or model ID substring)
-./set-opencode-model.sh deepseek      # Deepseek V4 Flash (default)
-./set-opencode-model.sh pro           # Deepseek V4 Pro
-./set-opencode-model.sh kimi          # Kimi K2.5
-./set-opencode-model.sh k2.6          # Kimi K2.6
-./set-opencode-model.sh qwen          # Qwen 3.5 Plus
-./set-opencode-model.sh 3.6           # Qwen 3.6 Plus
-./set-opencode-model.sh minimax       # MiniMax M2.5
-./set-opencode-model.sh m2.7          # MiniMax M2.7
-./set-opencode-model.sh mimo          # Mimo V2.5
-./set-opencode-model.sh glm           # GLM-5
+```
+/openmodel
 ```
 
-These are the models included in the **OpenCode Go subscription** (no separate API key needed):
+It first asks which plan type you want:
 
-| # | Display Name | Model ID | Best For |
-|---|-------------|----------|----------|
-| 1 | Deepseek V4 Flash | `opencode-go/deepseek-v4-flash` | Default — fast, low-cost |
-| 2 | Deepseek V4 Pro | `opencode-go/deepseek-v4-pro` | High-quality coding, reasoning |
-| 3 | Kimi K2.5 | `opencode-go/kimi-k2.5` | Balanced quality and speed |
-| 4 | Kimi K2.6 | `opencode-go/kimi-k2.6` | Latest Kimi, improved accuracy |
-| 5 | Qwen 3.5 Plus | `opencode-go/qwen3.5-plus` | Strong instruction following |
-| 6 | Qwen 3.6 Plus | `opencode-go/qwen3.6-plus` | Latest Qwen, improved reasoning |
-| 7 | MiniMax M2.5 | `opencode-go/minimax-m2.5` | Efficient mid-tier coding |
-| 8 | MiniMax M2.7 | `opencode-go/minimax-m2.7` | Enhanced quality over M2.5 |
-| 9 | Mimo V2.5 | `opencode-go/mimo-v2.5` | Fast, lightweight tasks |
-| 10 | Mimo V2.5 Pro | `opencode-go/mimo-v2.5-pro` | Pro-tier Mimo, higher accuracy |
-| 11 | GLM-5 | `opencode-go/glm-5` | Bilingual Chinese/English |
-| 12 | GLM-5.1 | `opencode-go/glm-5.1` | Latest GLM, improved multilingual |
+```
+A)  OpenCode Go  — suscripción Go (sin costo por token)
+B)  Billing      — modelos de pago por API (tu propia key)
+```
+
+**OpenCode Go subscription** (no separate API key needed):
+
+| # | Display Name | Model ID |
+|---|-------------|----------|
+| 1 | Deepseek V4 Flash | `opencode-go/deepseek-v4-flash` |
+| 2 | Deepseek V4 Pro | `opencode-go/deepseek-v4-pro` |
+| 3 | Kimi K2.5 | `opencode-go/kimi-k2.5` |
+| 4 | Kimi K2.6 | `opencode-go/kimi-k2.6` |
+| 5 | Qwen 3.5 Plus | `opencode-go/qwen3.5-plus` |
+| 6 | Qwen 3.6 Plus | `opencode-go/qwen3.6-plus` |
+| 7 | MiniMax M2.5 | `opencode-go/minimax-m2.5` |
+| 8 | MiniMax M2.7 | `opencode-go/minimax-m2.7` |
+| 9 | Mimo V2.5 | `opencode-go/mimo-v2.5` |
+| 10 | Mimo V2.5 Pro | `opencode-go/mimo-v2.5-pro` |
+| 11 | GLM-5 | `opencode-go/glm-5` |
+| 12 | GLM-5.1 | `opencode-go/glm-5.1` |
+
+**Billing models** (requires your own API key configured in OpenCode):
+
+| # | Display Name | Model ID |
+|---|-------------|----------|
+| 1 | Claude Sonnet 4.6 | `anthropic/claude-sonnet-4-6` |
+| 2 | Claude Opus 4.7 | `anthropic/claude-opus-4-7` |
+| 3 | Claude Haiku 4.5 | `anthropic/claude-haiku-4-5` |
+| 4 | GPT-4o | `openai/gpt-4o` |
+| 5 | GPT-4.1 | `openai/gpt-4.1` |
+| 6 | Gemini 2.5 Pro | `google/gemini-2.5-pro` |
+| 7 | Deepseek Chat V3 | `deepseek/deepseek-chat-v3-0324` |
+| 8 | Deepseek R1 | `deepseek/deepseek-r1-0528` |
+
+You can also use the shell script directly:
+
+```bash
+./set-opencode-model.sh           # interactive menu
+./set-opencode-model.sh pro       # direct selection by name substring
+```
 
 The selected model persists in `shared/opencode-model.txt` across resets.
 
@@ -135,7 +149,8 @@ echo '{"model":"claude-opus-4-7"}' > planner/.claude/settings.json
 |---------|---------|
 | `./install.sh` | One-time setup: dependencies, skill templates, config |
 | `./set-task.sh "task"` | Set the task description |
-| `./set-opencode-model.sh` | Change the OpenCode coder model |
+| `/openmodel` (Claude Code skill) | Change the OpenCode coder model interactively |
+| `./set-opencode-model.sh` | Change the OpenCode coder model via shell |
 | `./sync.sh` | Launch both agents in tmux split panes |
 | `./reset.sh` | Clean run artifacts for a fresh start |
 | `./ask.sh -c "msg"` | Send message to coder (-p planner, -b both) |
@@ -166,8 +181,10 @@ agent-collab/
 │   ├── start.sh              # Launch OpenCode coder (polls plan-ready.flag)
 │   └── interactive.sh        # Interactive OpenCode session
 ├── skills/
-│   └── sync/
-│       └── SKILL.md.template # /sync skill injected into Claude Code
+│   ├── sync/
+│   │   └── SKILL.md.template # /sync skill injected into Claude Code
+│   └── openmodel/
+│       └── SKILL.md.template # /openmodel skill injected into Claude Code
 ├── shared/
 │   ├── task.md               # Your task (edit this)
 │   ├── opencode-model.txt    # Active OpenCode model ID
@@ -190,6 +207,7 @@ agent-collab/
 ## How It Works
 
 - **`/sync` skill** is installed to `~/.claude/skills/sync/SKILL.md` by `install.sh`. It defines the full 4-phase pipeline workflow for Claude Code.
+- **`/openmodel` skill** is installed to `~/.claude/skills/openmodel/SKILL.md` by `install.sh`. It lets you select the OpenCode model by category (Go subscription or Billing) from within Claude Code.
 - **`planner/CLAUDE.md`** is generated from its `.template` at install time, with the absolute path baked in. Defines the planner+tester role for VS Code/tmux use.
 - **`coder/start.sh`** polls for `plan-ready.flag`, then runs `opencode run` with the plan attached and the model from `opencode-model.txt`.
 - **OpenCode tokens are not charged to your Claude Code session.** Usage is tracked in `usage.jsonl` per run and accumulated to `~/.agent-collab/usage-all.jsonl` across all runs.
