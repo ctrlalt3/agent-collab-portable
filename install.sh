@@ -7,6 +7,9 @@ CHANNEL="$SHARED/channel"
 SKILL_DIR="$HOME/.claude/skills/sync"
 SKILL_DEST="$SKILL_DIR/SKILL.md"
 SKILL_TEMPLATE="$AGENT_COLLAB_DIR/skills/sync/SKILL.md.template"
+OPENMODEL_DIR="$HOME/.claude/skills/openmodel"
+OPENMODEL_DEST="$OPENMODEL_DIR/SKILL.md"
+OPENMODEL_TEMPLATE="$AGENT_COLLAB_DIR/skills/openmodel/SKILL.md.template"
 CLAUDE_MD_TEMPLATE="$AGENT_COLLAB_DIR/planner/CLAUDE.md.template"
 CLAUDE_MD_DEST="$AGENT_COLLAB_DIR/planner/CLAUDE.md"
 
@@ -40,6 +43,11 @@ echo "Generated: $CLAUDE_MD_DEST"
 mkdir -p "$SKILL_DIR"
 sed 's|{{AGENT_COLLAB_DIR}}|'"$AGENT_COLLAB_DIR"'|g' "$SKILL_TEMPLATE" > "$SKILL_DEST"
 echo "Generated: $SKILL_DEST"
+
+# 5b. Generate ~/.claude/skills/openmodel/SKILL.md from template
+mkdir -p "$OPENMODEL_DIR"
+sed 's|{{AGENT_COLLAB_DIR}}|'"$AGENT_COLLAB_DIR"'|g' "$OPENMODEL_TEMPLATE" > "$OPENMODEL_DEST"
+echo "Generated: $OPENMODEL_DEST"
 
 # 6. Generate .claude/settings.local.json with dynamic paths
 mkdir -p "$AGENT_COLLAB_DIR/.claude"
